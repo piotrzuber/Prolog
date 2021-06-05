@@ -1,4 +1,4 @@
-%   Piotr Żuber
+%   Piotr Żuber 395077
 
 :- ensure_loaded(library(lists)).
 
@@ -230,7 +230,7 @@ booleanExpVal(BoolExp, Pid, SysState) :-
     arithmeticExpVal(R, Pid, SysState, RValue),
     call(OperRel, LValue, RValue).
 
-%   Boolean operator definition
+%   <> operator definition
 
 :- op(700, 'xfx', '<>').
 L <> R :- L \= R.
@@ -323,7 +323,6 @@ sectionUsers(_, [], _, Users, Result) :-
 
 sectionUsers(Program, [InsPtr | InsPtrs], Pid, Users, Result) :-
     NextProc is Pid + 1,
-    % currIns is InsPtr + 1,
     (   procInSection(InsPtr, Program) ->
         sectionUsers(Program, InsPtrs, NextProc, [Pid | Users], Result)
     ;   sectionUsers(Program, InsPtrs, NextProc, Users, Result)    
@@ -405,34 +404,28 @@ performSteps(Pid, N, Program, CheckedNodes, SysState, NewChecked, Res) :-
 
 verify(N, ProgramPath) :-
     (   integer(N), N > 0 ->
-        readFile(ProgramPath, Variables, Arrays, Program),
+        set_prolog_flag(fileerrors, off),
+        (   see(ProgramPath) ->
+        read(variables(Variables)),
+        read(arrays(Arrays)),
+        read(program(Program)),
+        seen,
         initState(program(Variables, Arrays, Program), N, SysState),
         violationSearchWrapper(N, Program, SysState, SearchResult),
         showResultMsg(SearchResult)
+        ;   format('Error: brak pliku o nazwie - ~w~n', [ProgramPath])
+        )   
     ;   format('Error: parametr ~w powinien byc liczba > 0~n', [N])
     ).
 
-%%  IO
+verify() :-
+    current_prolog_flag(argv, [N1, ProgramPath | _]),
+    (   atom_number(N1, N) ->
+        verify(N, ProgramPath)
+    ;   format('Error: parametr ~w powinien byc liczba > 0~n', [N1])
+    ).
 
-%%%%
-%   readFile(+ProgramPath, -Variables, -Arrays, -Program)
-%   ProgramPath - path to file with program
-%   Variables - list of program variables
-%   Arrays - list of program arrays
-%   Program - list of program instructions
-%%%%
-readFile(ProgramPath, Variables, Arrays, Program) :-
-    set_prolog_flag(fileerrors, off),
-    see(ProgramPath),
-    !,
-    read(variables(Variables)),
-    read(arrays(Arrays)),
-    read(program(Program)),
-    seen.
-       
-readFile(ProgramPath, _, _, _) :-
-    format('Error: brak pliku o nazwie - ~w~n', [ProgramPath]),
-    abort.
+%%  IO
 
 %%%%
 %   showInterlacing(+Interlacing)
@@ -440,7 +433,7 @@ readFile(ProgramPath, _, _, _) :-
 %%%%
 showInterlacing([]).
 showInterlacing([step(Pid, InsPtr) | Steps]) :-
-    format('   Process ~d: ~d~n', [Pid, InsPtr]),
+    format('   Proces ~d: ~d~n', [Pid, InsPtr]),
     showInterlacing(Steps).
 
 %%%%
